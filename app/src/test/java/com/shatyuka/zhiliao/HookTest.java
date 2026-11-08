@@ -171,6 +171,46 @@ public class HookTest {
         checkHook(new LaunchAd());
     }
 
+    /**
+     * 联投开屏（超级首映 / 搜搜联动）：冷启动进首页后盖在信息流上的那支广告，和 sdk.launchad 完全两条链路。
+     * 门槛取「新的开屏模块在不在」（LaunchApi），在就要求四条目标全部解析到——少一条真机上就是首页又飘出一支广告，
+     * 或者浮层视频广告卡在等联投动画。
+     */
+    @Test
+    public void launchAdCombineTest() {
+        String[] names = {"checkData()", "isShowCombineAd()", "getSoSoCombineAdShow()", "existAdFeedSoSoData()"};
+        for (PackageInfo packageInfo : packageInfos) {
+            boolean hasLaunchModule = hasClass(packageInfo.classLoader,
+                    "com.zhihu.android.launch.api.call.LaunchApi");
+            try {
+                resetState(LaunchAd.class);
+                Helper.initSharedClasses(packageInfo.classLoader);
+                new LaunchAd().init(packageInfo.classLoader);
+            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                System.out.println("skip 去启动页广告 on " + packageInfo.name + ": " + e.getMessage());
+                continue;
+            } catch (Throwable e) {
+                throw new AssertionError("去启动页广告, " + packageInfo.name, e);
+            }
+            if (!hasLaunchModule) {
+                continue;
+            }
+            String[] targets = LaunchAd.combineTargets();
+            for (int i = 0; i < names.length; i++) {
+                org.junit.Assert.assertNotNull("联投开屏的 " + names[i] + " 没解析到（" + packageInfo.name + "）", targets[i]);
+            }
+        }
+    }
+
+    private static boolean hasClass(ClassLoader classLoader, String name) {
+        try {
+            Class.forName(name, false, classLoader);
+            return true;
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
+
     @Test
     public void customFilterTest() {
         checkHook(new CustomFilter());

@@ -40,10 +40,11 @@ $env:ZHILIAO_TEST_DIR = (Resolve-Path '.\targetapp\jars').Path; .\gradlew.bat te
 
 ## 当前状态
 
-- 现役 26.10.20；真机已验证：知乎 11.11.1/41108（小米商店包）、11.11.0/41106 小米渠道包与官网包，32/32 Hook 可用、Lucide 图标正常。
+- 现役 26.11.08；真机已验证：知乎 11.14.0/41410（官网包）32/32 Hook 可用、连开三次冷启动无崩溃，联投开屏的拦截点已命中（广告视觉回归等下一次投放）；11.11.1/41108（小米商店包）、11.11.0/41106 小米渠道包与官网包在 26.10.20 上验证过。
 - 顶部焦点广告栏与浮层/彩蛋广告是两条独立链路，都不走 `FeedList`：前者由 `ad_card` 模块出视图（拦 `AdCardViewInterfaceImpl#getAdCardView(回调,int)`），后者是「特形广告」`AdEgg`/`AdFloat`（拦父类的 `initData(String)`，注意别挑成同签名的私有 `isImageCached`）。详见 compat-audit §七。
+- 联投开屏（超级首映 / 搜搜联动）是第三条开屏链路：`AdCombineWatcher` 在首页 resume 时把 `LaunchImpl` 建好的整屏视图盖在信息流上，既不看 `isShowLaunchAd`，也不进 `sdk.launchad`。`LaunchAd` 现在让 `AdCombineWatcher#checkData` 和 `AdLaunchStatus#isShowCombineAd`／`getSoSoCombineAdShow`、`AdSoSoServer#existAdFeedSoSoData` 都答 false（只堵 `checkData` 会漏掉搜搜联动、并让 `AdFloatVideo` 卡在等联投动画）。这些类 11.10 就有、11.13 起才投放，旧基线同样会装但没做真机回归。详见 compat-audit §八。
 - 禁止自动刷新按刷新来源名分流：冷启动 `AppStart` 放行整条链路（缓存渲染成上次那一屏），随后在 `postRefreshSucceed` 丢弃网络结果，并在数据层拦截这次网络结果写回推荐缓存——两步一起才叫冻结（只丢 UI 结果的话，磁盘缓存仍会前进一格，下次冷启动就被带跑）。点「首页」`TabClick` 直接拦截；下拉 `Pull` 放行并解除冻结。冷启动不能直接拦截——拦掉刷新等于连缓存渲染一起拦掉，首页整片空白（真机已验证）。
 - 缓存写入按结构定位：`FeedLocalDataSource` 的 `void(FeedList)` + 缓存回调接口 + 无参清缓存 + String 缓存键四个特征，候选名单（官网 11.11 `q0.x`、小米 `b.b`、market 11.10 `o0.x`）优先，落空时 DexKit 按精确签名扫 `com.zhihu.android.app.feed` 兜底；绝不写死渠道包的混淆名。未知刷新来源用 `refreshType` 自己的 boolean 判定，避免新来源被当成主动刷新放行。
-- `docs/compat-audit-11.10.0.md`、`docs/watermark-audit-11.10.0.md` 是审计快照：现役结论看 compat-audit §六～§七，水印结论目前只有静态证据、真机未验证。
+- `docs/compat-audit-11.10.0.md`、`docs/watermark-audit-11.10.0.md` 是审计快照：现役结论看 compat-audit §六～§八，水印结论目前只有静态证据、真机未验证。
 - 反追踪的分享链路在 11.11.0 小米渠道包上类名整体漂移（`sharecore.u.d`→`sharecore.i.d` 等）。二维码**只能本地生成**：服务端 `image_share/qrcode` 并不按 `content` 原样编码，而是缩成 `http://s.zhihu.com/2_xxxx` 短链（用 OpenCV 解码同一链接的带参/不带参两张图确认，两次短链还不一样），所以改 `content`、改请求、改 URL 一律等于白改。现做法在 `ZHDraweeView#setImageURI(String)`（该方法定义在父类 Fresco `SimpleDraweeView` 上，按继承链找）拦下 `image_share` 地址，用 zxing 按干净链接本地编码一张，经 `getHierarchy().setImage(...)` 塞进控件并 `setResult(null)`，不联网也不经过 `ImageUrlUtils`。二维码**不能**换成本地 data URI：`setImageURI` 前会过 `ImageUrlUtils`，`data:` 直接抛异常，卡片留白框、切样式闪退（真机已复现）。
 - 分享链接去参改走**文本级**：拦 `ClipboardManager#setPrimaryClip` 与 `Intent#putExtra/putExtras` 里的 `EXTRA_TEXT`，用正则认知乎链接再剥 `utm_*`/`share_code`，完全不依赖混淆名（真机已验证：复制链接粘出来是干净地址）。单测 `ShareLinkTest`。长图分享的二维码由 `WebRenderShareActivity` 里的网页自己画，不归客户端 hook 管，详见 tracking-audit §五～§七。

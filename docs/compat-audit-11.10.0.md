@@ -140,3 +140,30 @@
    另外仓库关了 Issues，失败时那步 `issues.create` 会再抛一次 `Issues has been disabled`，加个 `has_issues` 判断。
    本地用同一份 APK 手动跑通：dex2jar 需要 8GB 堆（`_JAVA_OPTIONS=-Xmx8g`），`testDebugUnitTest` 三分包全绿。
 
+## 八、联投开屏漏网（2026-11-08，知乎 11.13.0 / 11.14.0）
+
+真机截图里冷启动进首页后，还有一支整屏创意直接盖在信息流上（京东 11.11 那种：右上角「2 关闭」，素材本身半透明），老的三条 `sdk.launchad` Hook 一条都碰不到它。
+
+1. **链路**：`com.zhihu.android.behavior.ibehaviorreceiver.BehaviorInnerObserverProvider#getIAdCombine` 给首页 fragment 建一个
+   `com.zhihu.android.app.ui.fragment.ad.combine.AdCombineWatcher`；它 `onHostResume` → `tryGoCombineFragment()`，依次问
+   `IAdLaunchStatus#isShowCombineAd()`（超级首映）、`IAdSoSoServer#existAdFeedSoSoData()`（搜搜联动），再看自己的 `checkData()` 有没有数据；
+   全过了就路由到 `zhihu://feed_new_ad_combine_fragment/2`，由 `AdNewNewCombineFragment`（继承 `LaunchAnimateFragment`，带圆形展开动画）把整屏视图盖上来。
+2. **为什么老 Hook 拦不住**：视图本身是新的 `com.zhihu.android.launch` 模块出的——`LaunchApi#requestAd/buildLaunchView` → `u1.d.*` presenter，
+   跳过按钮、摇一摇、浮层视频都在这里面。开屏页 `LaunchFragment` 也用这套 UI，但它挂在 `LauncherActivity` 里、由 `LaunchAdHelper#isShowLaunchAd` 管（已拦）；
+   联投这条既不看 `isShowLaunchAd`，也不进 `com.zhihu.android.sdk.launchad`，所以老 Hook 和清 `room_launch_ad` 都碰不到它。
+3. **修法**：`LaunchAd` 加四条判断，都归「去启动页广告」这个开关：`AdCombineWatcher#checkData` 答 false（有没有数据 → 没有），
+   `AdLaunchStatus#isShowCombineAd` / `getSoSoCombineAdShow`、`AdSoSoServer#existAdFeedSoSoData` 答 false（素材状态位 → 没有）。
+   只堵 `checkData` 不够：搜搜联动的标志是纯 getter，没人消费，每回一次首页都要再判一次并发一条 `CombineWatcherDataError` 埋点；
+   `AdFloatVideo` 又会在 `isShowCombineAd() || getSoSoCombineAdShow()` 为真时注册「联投动画播完」的监听然后 return——联投页不出现，这个回调永远等不到，
+   那支浮层视频整场不显示（现在被「去浮层广告」盖住了，只在用户关掉它时暴露）。
+4. **版本口径**：这套类和路由在 11.10.0 的两份审计包里就已经齐全（`AdCombineWatcher`、`AdNewNewCombineFragment`、`LaunchApi`、`AdLaunchStatus` 方法名一致），
+   **不是 11.13 新增的代码**，11.13.0 真机才看到实际投放。所以这四条 Hook 在旧基线上同样会装——旧基线没做真机回归，属于未验证改动。
+5. **真机现状（素材未复现）**：知乎 11.14.0/41410，小米 2109119BC / Android 14 / LSPosed 2.2.0：`安装 去启动页广告 句柄=+7`（原 +3），
+   `初始化成功=32/32 Hook句柄=92`；首页 resume 时日志出现 `[自检][命中]` 的 `AdLaunchStatus#isShowCombineAd`、`AdLaunchStatus#getSoSoCombineAdShow`、
+   `AdSoSoServer#existAdFeedSoSoData` 三条，连开三次冷启动无崩溃，推荐流、下拉刷新正常。当天该设备已不再投放联投素材（把开关关掉也复现不出广告），
+   **"广告消失"的视觉回归还没确认**，要等下一次投放——和 §七.2 的浮窗一样，属于「钩子已挂、素材待现」。
+6. **残留风险**：没有拦 `LaunchApi#buildLaunchView`——它只负责「把广告视图建出来」，调用方是 `LaunchFragment`（受 `isShowLaunchAd` 管）和
+   `AdNewNewCombineFragment`（受上面四道判断管）。将来若出现第三个触发点（比如信息流里的联投卡片直接开这个 fragment），视图还会被建出来；
+   目前全包里引用它的只有这两处。
+7. **单测**：`HookTest#launchAdCombineTest` 以「新开屏模块在不在」（`LaunchApi`）为门槛，在就要求四条目标全部解析到；四份审计包都过门槛。
+
