@@ -10,8 +10,6 @@ activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 dexkit = "2.3.0"
 cxx = "1.2.0"
-# Removed once the settings UI no longer depends on miuix.
-miuix = "0.8.8"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -33,7 +31,6 @@ compose-material3-adaptive-layout = { group = "androidx.compose.material3.adapti
 compose-material3-adaptive-navigation = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation" }
 dexkit = { group = "org.luckypray", name = "dexkit", version.ref = "dexkit" }
 cxx = { group = "dev.rikka.ndk.thirdparty", name = "cxx", version.ref = "cxx" }
-miuix-android = { group = "top.yukonga.miuix.kmp", name = "miuix-android", version.ref = "miuix" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

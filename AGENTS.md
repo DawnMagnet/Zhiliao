@@ -21,9 +21,9 @@ $env:ZHILIAO_TEST_DIR = (Resolve-Path '.\targetapp\jars').Path; .\gradlew.bat te
 
 ## 技术栈
 
-- Java（业务代码没有 Kotlin）；libxposed Modern API 102，薄适配层在 `app/src/main/java/com/shatyuka/zhiliao/xposed/`（保留旧 before/after 写法）。
+- Kotlin（K2）+ libxposed Modern API 102。薄适配层在 `app/src/main/java/com/shatyuka/zhiliao/xposed/`（保留旧 before/after 写法）。设置页是 Material 3 Compose。唯一的 C++ 是非官方包的 `fopen` 拦截，原因见 `docs/NATIVE.md`。
 - 入口 `MainHook`（`app/src/main/resources/META-INF/xposed/`）→ `Hooks` 依次 init/hook 每个 `IHook`。
-- CMake native（Dobby 子模块）+ R8 full mode；版本号在 `gradle.properties` 的 `appVerName` / `appVerCode`。
+- CMake native（Dobby 子模块，仅 `zhiliao.cpp`）+ R8 full mode；版本号在 `gradle.properties` 的 `appVerName` / `appVerCode`。构建脚本是 Kotlin DSL，依赖版本在 `gradle/libs.versions.toml`。
 
 ## 约定（改 Hook 前必读）
 

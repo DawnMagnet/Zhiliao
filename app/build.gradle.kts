@@ -189,7 +189,9 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
-    implementation(libs.miuix.android)
+    implementation(libs.compose.material3.window.size)
+    implementation(libs.compose.ui.tooling.preview)
+    debugImplementation(libs.compose.ui.tooling)
     // DexKit：候选名单和结构特征都找不到时的最后一级兜底（原生扫描 dex，按字符串/签名定位）
     implementation(libs.dexkit)
 }

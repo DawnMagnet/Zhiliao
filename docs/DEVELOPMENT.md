@@ -68,11 +68,11 @@ $env:ZHILIAO_TEST_DIR = (Resolve-Path '.\targetapp\jars').Path
 
 ## 独立设置 App
 
-设置界面是模块自己的 Activity（`MainActivity`，miuix + Compose），不再注入知乎设置页。要点：
+设置界面是模块自己的 Activity（`MainActivity`，Material 3 Compose），不再注入知乎设置页。Android 12 及以上默认跟随壁纸取色（`switch_dynamic_color`），更早的系统用内置配色。宽屏（展开宽度）左侧是分区导航。要点：
 
 - 配置存放在 LSPosed 远端偏好（`zhiliao_preferences` 组）：App 侧经 `XposedServiceHelper` 读写并自动申请/收敛知乎 scope；Hook 侧在 `MainHook` 用 `getRemotePreferences` 读取，**只读**。
 - 旧版设置文件（知乎私有目录的 `zhiliao_preferences.xml`）**不参与读取**。曾经的"远端缺键就回落旧值"会造成界面与行为打架：App 按默认值显示全关、Hook 按旧文件里的开关干活（旧配置里开着的过滤视频/过滤文章/禁止自动刷新足以让推荐首页全空）。现在只在首次检测到时弹一次提示（`Helper.detectLegacyPreferences`），让用户在新设置页重新确认。
-- 图标沿用原设置页的 Lucide 资源，外层底座是 `ui/SmoothRoundedCornerShape`（G2 连续曲率圆角，贝塞尔系数 K=0.5432 逼近超椭圆）。
+- 图标沿用原设置页的 Lucide 资源，外层是分组色的圆角底座。配色走 `ZhiliaoTheme`：Android 12+ 且 `switch_dynamic_color` 为真时用 `dynamicLightColorScheme` / `dynamicDarkColorScheme`，否则用内置方案。
 - "重启知乎""清理临时文件"走 signature 级自定义权限的广播（`RESTART_ZHIHU` 权限），Hook 侧 `MainHook.registerModuleBroadcasts` 接收。
 - 状态回执：设置页的「自检」行发有序广播 `ACTION_STATUS`，Hook 侧把 `Hooks.statusLine()`（如 `知乎 11.10.0/41012 初始化成功=31/31`）塞进 result extras，App 的 resultReceiver 取回来显示。发送方要有权限，靠的是 Hook 侧注册接收器时声明的 `RESTART_PERMISSION`；`sendOrderedBroadcast` 的第二个参数是"接收方需持有的权限"，别搞反。接收器必须 `RECEIVER_EXPORTED` 才收得到跨应用广播。
 - 置灰（自动降级）：`HookStatus` 里维护"功能名 → 它负责的设置项"映射，某条 Hook 定位/安装失败时把对应键记进账本，随状态回执一起发 `failedKeys`；设置页把这些键的开关置灰、副标题换成"当前知乎版本暂不支持"。新增 Hook 忘了登记映射会被 `HookStatusTest.everyHookIsAccountedFor` 拦下。

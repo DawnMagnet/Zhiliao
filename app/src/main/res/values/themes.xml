@@ -3,7 +3,8 @@
 
     <!-- 设置界面完全由 Compose 绘制，窗口本身不需要标题栏，也不要有底色遮盖 edge-to-edge。 -->
     <style name="Theme.Zhiliao" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
-        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowBackground">#F8F9FF</item>
+        <item name="android:windowLightNavigationBar">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
