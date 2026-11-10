@@ -2,13 +2,15 @@
 
 知乎客户端的 LSPosed 模块，提供广告拦截与界面净化。运行于知乎进程内，通过 libxposed API 102 注入。
 
-[![Download](https://img.shields.io/github/v/release/Piracola/Zhiliao?label=下载)](https://github.com/Piracola/Zhiliao/releases/latest)
-[![Chat](https://img.shields.io/badge/Telegram-群-blue.svg?logo=telegram)](https://t.me/joinchat/OibCWxbdCMkJ2fG8J1DpQQ)
-[![License](https://img.shields.io/github/license/Piracola/Zhiliao?label=License)](https://choosealicense.com/licenses/gpl-3.0/)
+本构建由 [Dominic Wen](https://github.com/DawnMagnet) 打包发布。
+
+[![Download](https://img.shields.io/github/v/release/DawnMagnet/Zhiliao?label=下载)](https://github.com/DawnMagnet/Zhiliao/releases/latest)
+[![License](https://img.shields.io/github/license/DawnMagnet/Zhiliao?label=License)](https://choosealicense.com/licenses/gpl-3.0/)
 
 <p align="center">
-  <img src="docs/screenshots/settings-dark.jpg" width="300" alt="知了设置页（深色）">
-  <img src="docs/screenshots/settings-light.jpg" width="300" alt="知了设置页（浅色）">
+  <img src="docs/screenshots/settings-light.png" width="220" alt="知了设置页（浅色）">
+  <img src="docs/screenshots/settings-dark.png" width="220" alt="知了设置页（深色）">
+  <img src="docs/screenshots/settings-dynamic.png" width="220" alt="知了设置页（壁纸取色）">
 </p>
 
 ## 功能
@@ -67,9 +69,9 @@
 
 ## 与上游版本的差异
 
-本项目基于 [shatyuka/Zhiliao](https://github.com/shatyuka/Zhiliao) 继续维护，上游功能全部保留，并在此基础上做了以下调整：
+本构建基于 [shatyuka/Zhiliao](https://github.com/shatyuka/Zhiliao)，经 [Piracola/Zhiliao](https://github.com/Piracola/Zhiliao) 继续维护后由 [Dominic Wen](https://github.com/DawnMagnet) 打包。上游功能全部保留，并在此基础上做了以下调整：
 
-- **设置独立成 App。** 不再向知乎注入设置页面，全部开关集中在知了 App 内，采用 miuix 风格的界面与统一的图标。
+- **设置独立成 App。** 不再向知乎注入设置页面，全部开关集中在知了 App 内。界面是 Material 3：跟随系统深色模式，Android 12 及以上可跟随壁纸取色，宽屏用导航栏分栏。
 - **适配状态可见。** 知乎版本更新导致某个功能无法定位目标时，对应开关会置灰并标注「当前知乎版本暂不支持」，避免开关处于开启状态但实际无效。
 - **支持诊断导出。** 设置页提供「自检」用于查询各功能的挂载情况，以及「导出诊断」用于将版本信息与开关状态整理为文本并复制到剪贴板。模块不申请网络权限，这些信息仅保存在本地。
 - **跟进版本更新。** 维护侧每天获取知乎官方安装包，校验包名、版本与签名证书，并尝试执行兼容性检查，以便尽早发现新版本导致的功能失效。
@@ -88,8 +90,7 @@
 
 ## 下载
 
-- [GitHub Release](https://github.com/Piracola/Zhiliao/releases/latest)
-- [蓝奏云](https://wwa.lanzoux.com/b00tscbwd) 密码：1hax
+- [GitHub Release](https://github.com/DawnMagnet/Zhiliao/releases/latest)（产物名为 `Zhiliao_<版本>.apk`）
 
 ## 常见问题
 
@@ -99,14 +100,15 @@
 
 ## 反馈
 
-问题反馈请提交至 [GitHub Issues](https://github.com/Piracola/Zhiliao/issues)，也可在 Telegram 群中提出。附上「导出诊断」生成的文本有助于快速定位问题。
+问题反馈请提交至 [GitHub Issues](https://github.com/DawnMagnet/Zhiliao/issues)。附上「导出诊断」生成的文本有助于快速定位问题。
 
 ## 致谢
 
-- [shatyuka/Zhiliao](https://github.com/shatyuka/Zhiliao)：本项目的上游，去广告与界面净化的核心思路与实现均来自原作者 shatyuka。
+- [shatyuka/Zhiliao](https://github.com/shatyuka/Zhiliao)：原作者 shatyuka 的仓库。去广告与界面净化的核心思路与实现均来自这里。常见问题与捐赠页也在该仓库的 wiki。上游社群在 [Telegram 频道](https://t.me/zhiliao) 与 [Telegram 群](https://t.me/joinchat/OibCWxbdCMkJ2fG8J1DpQQ)。
+- [Piracola/Zhiliao](https://github.com/Piracola/Zhiliao)：本仓库直接继承的维护分支。
 - [daxiaamu/Zhiliao](https://github.com/daxiaamu/Zhiliao)：同源的另一分支，本项目部分功能的实现思路与新版适配方式参考了该仓库。
 - libxposed：模块与框架之间的接口标准（`io.github.libxposed:api`）。
-- [miuix](https://github.com/miuix-kotlin-multiplatform/miuix)：设置 App 的界面组件。
+- Jetpack Compose Material 3：设置 App 的界面。Android 12 及以上用系统壁纸取色，更早的系统用内置配色。
 - [Lucide](https://lucide.dev)：设置页图标，ISC 许可。
 - [DexKit](https://github.com/LuckyPray/DexKit)：用于定位代码的诊断工具。
 

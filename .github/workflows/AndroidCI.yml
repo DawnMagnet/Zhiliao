@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   build:
@@ -46,11 +47,23 @@ jobs:
       - name: Build with Gradle
         run: bash ./gradlew -PappVerName=${{ env.VERSION }} assembleRelease
       - name: Upload built apk
-        if: success()
+        id: upload_apk
+        continue-on-error: true
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: Zhiliao_${{ env.VERSION }}
-          path: ${{ github.workspace }}/app/build/outputs/apk/release
+          path: app/build/outputs/apk/release/Zhiliao_${{ env.VERSION }}.apk
+          if-no-files-found: error
+          compression-level: 0
+      - name: Upload built apk (retry)
+        if: steps.upload_apk.outcome == 'failure'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: Zhiliao_${{ env.VERSION }}
+          path: app/build/outputs/apk/release/Zhiliao_${{ env.VERSION }}.apk
+          if-no-files-found: error
+          overwrite: true
+          compression-level: 0
       - name: Send commit to telegram
         if: ${{ success() && github.event_name == 'push' && env.TELEGRAM_TO != '' && env.TELEGRAM_TOKEN != '' }}
         uses: appleboy/telegram-action@master

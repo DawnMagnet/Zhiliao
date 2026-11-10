@@ -1,0 +1,37 @@
+[versions]
+agp = "9.5.1"
+kotlin = "2.4.21"
+junit = "4.13.2"
+json = "20250517"
+libxposed = "102.0.0"
+zxing = "3.5.3"
+composeBom = "2026.09.00"
+activityCompose = "1.13.0"
+lifecycle = "2.11.0"
+dexkit = "2.3.0"
+cxx = "1.2.0"
+
+[libraries]
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+json = { group = "org.json", name = "json", version.ref = "json" }
+libxposed-api = { group = "io.github.libxposed", name = "api", version.ref = "libxposed" }
+libxposed-service = { group = "io.github.libxposed", name = "service", version.ref = "libxposed" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+compose-material3-window-size = { group = "androidx.compose.material3", name = "material3-window-size-class" }
+compose-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive" }
+compose-material3-adaptive-layout = { group = "androidx.compose.material3.adaptive", name = "adaptive-layout" }
+compose-material3-adaptive-navigation = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation" }
+dexkit = { group = "org.luckypray", name = "dexkit", version.ref = "dexkit" }
+cxx = { group = "dev.rikka.ndk.thirdparty", name = "cxx", version.ref = "cxx" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

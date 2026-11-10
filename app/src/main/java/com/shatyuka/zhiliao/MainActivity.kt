@@ -1,81 +1,34 @@
 package com.shatyuka.zhiliao
 
+import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.os.Build
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.shatyuka.zhiliao.ui.Accent
-import com.shatyuka.zhiliao.ui.ActionText
-import com.shatyuka.zhiliao.ui.AppSurface
-import com.shatyuka.zhiliao.ui.CardParagraph
-import com.shatyuka.zhiliao.ui.IconBadge
-import com.shatyuka.zhiliao.ui.RowDivider
-import com.shatyuka.zhiliao.ui.SectionHeader
-import com.shatyuka.zhiliao.ui.SettingCard
-import com.shatyuka.zhiliao.ui.SmoothRoundedCornerShape
-import com.shatyuka.zhiliao.ui.ValueWithArrow
+import com.shatyuka.zhiliao.ui.SettingsHome
+import com.shatyuka.zhiliao.ui.ZhiliaoTheme
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
-import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.Switch
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
-import top.yukonga.miuix.kmp.extra.SuperDialog
-import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.theme.darkColorScheme
-import top.yukonga.miuix.kmp.theme.defaultTextStyles
-import top.yukonga.miuix.kmp.theme.lightColorScheme
 
 /** 设置项的形态：开关行、可编辑文本行。 */
 enum class ItemKind { Switch, Text }
@@ -194,6 +147,18 @@ object Catalog {
         )),
     )
 
+    /**
+     * 模块自己的配色，不是知乎里的功能。默认跟随壁纸；Android 12 以下没有壁纸取色，界面改用内置方案。
+     * 键名一旦发出去就不能改，否则老用户的选择会丢。
+     */
+    val dynamicColor = PrefItem(
+        key = "switch_dynamic_color",
+        title = "跟随系统壁纸",
+        summary = "用壁纸颜色生成界面配色",
+        icon = R.drawable.ic_color,
+        defaultValue = true,
+    )
+
     /** 总开关单独一组：它不受自己管辖，由免责声明（EULA）约束。 */
     val mainSwitch = PrefItem(
         key = "switch_mainswitch",
@@ -214,7 +179,7 @@ object Catalog {
     )
 
     val switchItems: List<PrefItem> =
-        listOf(mainSwitch) + groups.flatMap { it.items }.filter { it.kind == ItemKind.Switch }
+        listOf(mainSwitch, dynamicColor) + groups.flatMap { it.items }.filter { it.kind == ItemKind.Switch }
 
     val textItems: List<PrefItem> = groups.flatMap { it.items }.filter { it.kind == ItemKind.Text }
 
@@ -235,8 +200,6 @@ object HookConstants {
     const val RESTART_PERMISSION = "com.shatyuka.zhiliao.permission.RESTART_ZHIHU"
 }
 
-/** 行内边距：左 16 对齐 MIUI 列表，右 12 给开关/箭头留呼吸。 */
-private val RowMargin = PaddingValues(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
 
 class MainActivity : ComponentActivity() {
     private var preferences: SharedPreferences? = null
@@ -254,6 +217,7 @@ class MainActivity : ComponentActivity() {
     private var lastZhihu = ""
     private var lastFingerprint = ""
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -264,20 +228,51 @@ class MainActivity : ComponentActivity() {
             }
         }
         setContent {
-            // 设置行默认是 17sp 标题 + 14sp 说明，配上 30dp 的图标显得头重脚轻；
-            // 标题 16sp、说明 12sp，两行加起来和图标更成比例。
-            val textStyles = remember {
-                val base = defaultTextStyles()
-                base.copy(
-                    headline1 = base.headline1.copy(fontSize = 16.sp),
-                    body2 = base.body2.copy(fontSize = 12.sp),
+            val followWallpaper = hookValues[Catalog.dynamicColor.key] ?: Catalog.dynamicColor.defaultValue
+            val expanded = calculateWindowSizeClass(this).widthSizeClass == WindowWidthSizeClass.Expanded
+            ZhiliaoTheme(followWallpaper = followWallpaper) {
+                SettingsHome(
+                    expanded = expanded,
+                    hookValues = hookValues,
+                    textValues = textValues,
+                    eulaAccepted = eulaAccepted,
+                    unsupportedKeys = unsupportedKeys,
+                    selfCheckStatus = selfCheckStatus,
+                    backendLabel = if (backendName() == "remote") "远端偏好" else "本地回落",
+                    version = versionString(),
+                    dynamicColorAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
+                    editingKey = editingKey,
+                    editingValue = editingValue,
+                    onToggle = ::putBoolean,
+                    onOpenEditor = { key, value ->
+                        editingKey = key
+                        editingValue = value
+                    },
+                    onEditingChange = { editingValue = it },
+                    onSaveEdit = {
+                        val key = editingKey
+                        if (key != null) putText(key, editingValue)
+                        editingKey = null
+                    },
+                    onDismissEdit = { editingKey = null },
+                    onAcceptEula = {
+                        // eulaAccepted 只在 reloadValues() 里从磁盘读。只写磁盘的话免责声明会一直挂着。
+                        preferences?.edit()?.putBoolean("accept_eula", true)?.apply()
+                        eulaAccepted = true
+                        // 界面把总开关显示成「已开启」，但每个 Hook 读 switch_mainswitch 的缺省值都是 false。
+                        // 首次同意时补一个真值，否则新用户看到的开关是开的，功能却一个都不生效。
+                        if (preferences?.contains("switch_mainswitch") != true) {
+                            preferences?.edit()?.putBoolean("switch_mainswitch", true)?.apply()
+                            hookValues = hookValues + ("switch_mainswitch" to true)
+                        }
+                    },
+                    onClean = ::cleanCache,
+                    onQueryStatus = ::queryStatus,
+                    onExport = ::exportDiagnostics,
+                    onRestart = ::restartZhihu,
+                    onOpenLink = ::open,
+                    onAuthorClick = ::easterEgg,
                 )
-            }
-            MiuixTheme(
-                colors = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(),
-                textStyles = textStyles,
-            ) {
-                SettingsScreen()
             }
         }
     }
@@ -334,357 +329,6 @@ class MainActivity : ComponentActivity() {
     /** 当前配置后端（remote=远端偏好 / local=本地回落），排障用。 */
     private fun backendName(): String = ModulePreferences.activeBackend()
 
-    // ---------------------------------------------------------------- UI
-
-    @Composable
-    private fun SettingsScreen() {
-        val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
-        val mainOn = hookValues[Catalog.mainSwitch.key] ?: Catalog.mainSwitch.defaultValue
-        val gate = eulaAccepted && mainOn
-
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = AppSurface.page(),
-            topBar = {
-                TopAppBar(
-                    title = "知了",
-                    largeTitle = "知了",
-                    color = AppSurface.page(),
-                    scrollBehavior = scrollBehavior,
-                )
-            },
-        ) { padding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(
-                    top = padding.calculateTopPadding(),
-                    bottom = padding.calculateBottomPadding() + 28.dp,
-                ),
-            ) {
-                if (!eulaAccepted) {
-                    item(key = "eula") { EulaSection() }
-                }
-                item(key = "main") { MainSwitchSection(gate) }
-                items(Catalog.groups, key = { it.key }) { group ->
-                    GroupSection(group, gate)
-                }
-                item(key = "clean") { CleanSection() }
-                item(key = "about") { AboutSection() }
-                item(key = "footer") { Footer() }
-            }
-            editingKey?.let { key -> EditDialog(key) }
-        }
-    }
-
-    @Composable
-    private fun EulaSection() {
-        SectionHeader("免责声明")
-        SettingCard {
-            Column(modifier = Modifier.padding(16.dp)) {
-                CardParagraph(
-                    "本软件仅用于技术交流，请勿用于商业及非法用途，如产生法律纠纷与作者本人无关。\n\n" +
-                        "本软件不会收集、上传您的个人信息，如有个人信息泄露与作者本人无关。",
-                )
-                Spacer(Modifier.height(14.dp))
-                Button(
-                    onClick = {
-                        // eulaAccepted 只在 reloadValues() 里从磁盘读，原来点完只写了磁盘、没更新这个状态：
-                        // 免责声明一直挂着，看起来就像按钮点不动，非得退出重进一次。
-                        preferences?.edit()?.putBoolean("accept_eula", true)?.apply()
-                        eulaAccepted = true
-                        // 界面把总开关显示成「已开启」，但每个 Hook 读 switch_mainswitch 的缺省值都是 false。
-                        // 首次同意时补一个真值，否则新用户看到的开关是开的，功能却一个都不生效。
-                        if (preferences?.contains("switch_mainswitch") != true) {
-                            preferences?.edit()?.putBoolean("switch_mainswitch", true)?.apply()
-                            hookValues = hookValues + ("switch_mainswitch" to true)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    BasicText(
-                        text = "我已知晓并同意",
-                        style = TextStyle(
-                            fontSize = 15.sp,
-                            color = MiuixTheme.colorScheme.onPrimary,
-                        ),
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun MainSwitchSection(gate: Boolean) {
-        SectionHeader("通用")
-        SettingCard {
-            SwitchRow(Catalog.mainSwitch, Accent.Blue, enabled = eulaAccepted)
-        }
-        if (eulaAccepted && !gate) {
-            Spacer(Modifier.height(8.dp))
-            SettingCard {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    CardParagraph("总开关已关闭，下面的功能都不会生效。")
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun GroupSection(group: PrefGroup, gate: Boolean) {
-        SectionHeader(group.title)
-        SettingCard {
-            group.items.forEachIndexed { index, item ->
-                if (index > 0) RowDivider()
-                // 子项跟着父开关走：总开关关掉时它不该还能拨。
-                val parentOn = item.parent?.let { hookValues[it] == true } ?: true
-                val enabled = gate && parentOn
-                when (item.kind) {
-                    ItemKind.Switch -> SwitchRow(item, group.accent, enabled)
-                    ItemKind.Text -> TextRow(item, group.accent, enabled)
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun SwitchRow(item: PrefItem, accent: Color, enabled: Boolean) {
-        val unsupported = item.key in unsupportedKeys
-        val active = enabled && !unsupported
-        val checked = !unsupported && (hookValues[item.key] ?: item.defaultValue)
-        val toggle: (() -> Unit)? = if (active) ({ putBoolean(item.key, !checked) }) else null
-        BasicComponent(
-            title = item.title,
-            summary = if (unsupported) "当前知乎版本暂不支持" else item.summary,
-            enabled = active,
-            startAction = { IconBadge(iconRes = item.icon, accent = accent, enabled = active) },
-            endActions = {
-                // 开关自己响应点击；整行也能点。同一次手势会触发两次写入，由 putBoolean 去抖兜住。
-                Switch(
-                    checked = checked,
-                    onCheckedChange = { putBoolean(item.key, it) },
-                    enabled = active,
-                )
-            },
-            onClick = toggle,
-            insideMargin = RowMargin,
-        )
-    }
-
-    @Composable
-    private fun TextRow(item: PrefItem, accent: Color, enabled: Boolean) {
-        val value = textValues[item.key].orEmpty()
-        val open: (() -> Unit)? = if (enabled) ({
-            editingKey = item.key
-            editingValue = value
-        }) else null
-        BasicComponent(
-            title = item.title,
-            summary = item.summary,
-            enabled = enabled,
-            startAction = { IconBadge(iconRes = item.icon, accent = accent, enabled = enabled) },
-            endActions = { ValueWithArrow(text = previewValue(item.key, value), enabled = enabled) },
-            onClick = open,
-            insideMargin = RowMargin,
-        )
-    }
-
-    @Composable
-    private fun CleanSection() {
-        Spacer(Modifier.height(8.dp))
-        SettingCard {
-            BasicComponent(
-                title = "清理临时文件",
-                summary = "清理知乎内的广告缓存和日志文件",
-                startAction = { IconBadge(iconRes = R.drawable.ic_delete, accent = Accent.Amber) },
-                endActions = {
-                    ActionText(text = "清理", onClick = { cleanCache() })
-                },
-                insideMargin = RowMargin,
-            )
-        }
-    }
-
-    @Composable
-    private fun AboutSection() {
-        SectionHeader("关于")
-        SettingCard {
-            LinkRow("版本", versionString(), R.drawable.ic_info, Accent.Blue, arrow = false) {}
-            RowDivider()
-            LinkRow("作者", "Shatyuka", R.drawable.ic_person, Accent.Blue, arrow = false) { easterEgg() }
-            RowDivider()
-            LinkRow("帮助", "常见问题", R.drawable.ic_help, Accent.Blue) {
-                open("https://github.com/shatyuka/Zhiliao/wiki")
-            }
-            RowDivider()
-            LinkRow("TG频道", "订阅更新", R.drawable.ic_rss_feed, Accent.Blue) {
-                open("https://t.me/zhiliao")
-            }
-            RowDivider()
-            LinkRow("TG群", "找作者对线", R.drawable.ic_telegram, Accent.Blue) {
-                open("https://t.me/joinchat/OibCWxbdCMkJ2fG8J1DpQQ")
-            }
-            RowDivider()
-            LinkRow("源代码", "点个 Star 吧", R.drawable.ic_github, Accent.Blue) {
-                open("https://github.com/shatyuka/Zhiliao")
-            }
-            RowDivider()
-            LinkRow("捐赠", "快揭不开锅了", R.drawable.ic_monetization, Accent.Blue) {
-                open("https://github.com/shatyuka/Zhiliao/wiki/Donate")
-            }
-            RowDivider()
-            BasicComponent(
-                title = "自检",
-                summary = selfCheckStatus ?: "点右侧刷新，向知乎查询当前状态",
-                startAction = { IconBadge(iconRes = R.drawable.ic_info, accent = Accent.Blue) },
-                endActions = {
-                    ActionText(text = "刷新", onClick = { queryStatus() })
-                },
-                onClick = { queryStatus() },
-                insideMargin = RowMargin,
-            )
-            RowDivider()
-            BasicComponent(
-                title = "导出诊断",
-                summary = "把这份报告发给开发者，只导出、不上传",
-                startAction = { IconBadge(iconRes = R.drawable.ic_info, accent = Accent.Blue) },
-                endActions = {
-                    ActionText(text = "导出", onClick = { exportDiagnostics() })
-                },
-                onClick = { exportDiagnostics() },
-                insideMargin = RowMargin,
-            )
-            RowDivider()
-            BasicComponent(
-                title = "重启知乎",
-                summary = "应用新设置",
-                startAction = { IconBadge(iconRes = R.drawable.ic_restart, accent = Accent.Blue) },
-                endActions = {
-                    ActionText(text = "重启", onClick = { restartZhihu() })
-                },
-                insideMargin = RowMargin,
-            )
-        }
-    }
-
-    @Composable
-    private fun LinkRow(
-        title: String,
-        value: String,
-        icon: Int,
-        accent: Color,
-        arrow: Boolean = true,
-        onClick: () -> Unit,
-    ) {
-        BasicComponent(
-            title = title,
-            startAction = { IconBadge(iconRes = icon, accent = accent) },
-            endActions = {
-                if (arrow) {
-                    ValueWithArrow(text = value)
-                } else {
-                    BasicText(
-                        text = value,
-                        style = TextStyle(
-                            fontSize = 13.sp,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                        ),
-                    )
-                }
-            },
-            onClick = onClick,
-            insideMargin = RowMargin,
-        )
-    }
-
-    @Composable
-    private fun Footer() {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 22.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            BasicText(
-                text = "配置通道：" + if (backendName() == "remote") "远端偏好" else "本地回落",
-                style = TextStyle(fontSize = 11.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary),
-            )
-        }
-    }
-
-    @Composable
-    private fun EditDialog(key: String) {
-        val meta = Catalog.textItem(key)
-        val isScript = key == "edit_js"
-        SuperDialog(
-            show = true,
-            title = meta?.title ?: "编辑",
-            summary = meta?.summary,
-            renderInRootScaffold = false,
-            onDismissRequest = { editingKey = null },
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(SmoothRoundedCornerShape(12.dp))
-                        .background(MiuixTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                ) {
-                    BasicTextField(
-                        value = editingValue,
-                        onValueChange = { editingValue = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = if (isScript) 160.dp else 72.dp),
-                        textStyle = TextStyle(
-                            fontSize = if (isScript) 12.sp else 14.sp,
-                            lineHeight = if (isScript) 18.sp else 20.sp,
-                            fontFamily = if (isScript) FontFamily.Monospace else FontFamily.Default,
-                            color = MiuixTheme.colorScheme.onSurface,
-                        ),
-                        cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
-                    )
-                    if (editingValue.isEmpty()) {
-                        BasicText(
-                            text = if (isScript) "// 例如 window.__zhiliao = 1" else "留空为忽略",
-                            style = TextStyle(
-                                fontSize = if (isScript) 12.sp else 14.sp,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            ),
-                        )
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                TextButton(
-                    text = "保存",
-                    onClick = {
-                        putText(key, editingValue)
-                        editingKey = null
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.textButtonColorsPrimary(),
-                )
-                Spacer(Modifier.height(8.dp))
-                TextButton(
-                    text = "取消",
-                    onClick = { editingKey = null },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-    }
-
-    // ------------------------------------------------------------ 生命周期外的小工具
-
-    private fun previewValue(key: String, value: String): String = when {
-        value.isBlank() -> "未设置"
-        key == "edit_js" -> "${value.length} 字符"
-        value.length > 10 -> value.take(10) + "…"
-        else -> value
-    }
-
     private fun cleanCache() {
         // 清理目标在知乎的数据目录，模块 App 无权直接删，走广播让 Hook 侧执行
         sendBroadcast(Intent(HookConstants.ACTION_CLEAN_CACHE).setPackage(HookConstants.hookPackage))
@@ -707,6 +351,8 @@ class MainActivity : ComponentActivity() {
             failures = unsupportedKeys.toList(),
             switches = hookValues,
             textLengths = textValues.mapValues { it.value.length },
+            packager = getString(R.string.packager_name),
+            sourceRepo = getString(R.string.source_repo),
         )
         try {
             val dir = File(getExternalFilesDir(null), "diagnostics").apply { mkdirs() }
@@ -772,7 +418,3 @@ class MainActivity : ComponentActivity() {
 
     private fun open(url: String) = startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 }
-
-
-
-

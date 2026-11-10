@@ -1,3 +1,8 @@
+// libc fopen hook for unofficial Zhihu packages.
+// Integrity checkers call fopen(".../base.apk") from native code, then die with the
+// thread (pthread_exit). Kotlin can hook java.io.File, but it cannot inline-hook libc,
+// so this file stays native. It is loaded only when the installed Zhihu signature does
+// not match the official one (see MainHook.tryLoadNative).
 #include <jni.h>
 #include <cstdio>
 #include <cstring>
