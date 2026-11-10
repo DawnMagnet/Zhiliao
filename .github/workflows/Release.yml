@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -67,9 +68,23 @@ jobs:
               --target "${GITHUB_SHA}" \
               --generate-notes
           fi
+      # FinalizeArtifact occasionally dies with ECONNRESET after the bytes are uploaded.
+      # Retry once with overwrite; the apk is already compressed, so skip another zip pass.
       - name: Upload built apk
-        if: success()
+        id: upload_apk
+        continue-on-error: true
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: Zhiliao_${{ env.VERSION }}
-          path: ${{ github.workspace }}/app/build/outputs/apk/release
+          path: app/build/outputs/apk/release/Zhiliao_${{ env.VERSION }}.apk
+          if-no-files-found: error
+          compression-level: 0
+      - name: Upload built apk (retry)
+        if: steps.upload_apk.outcome == 'failure'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: Zhiliao_${{ env.VERSION }}
+          path: app/build/outputs/apk/release/Zhiliao_${{ env.VERSION }}.apk
+          if-no-files-found: error
+          overwrite: true
+          compression-level: 0
