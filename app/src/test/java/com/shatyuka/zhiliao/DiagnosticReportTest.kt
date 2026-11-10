@@ -20,11 +20,15 @@ class DiagnosticReportTest {
         failures = listOf("switch_homenav"),
         switches = mapOf("switch_mainswitch" to true, "switch_feedad" to false),
         textLengths = mapOf("edit_regex" to 12),
+        packager = "Dominic Wen",
+        sourceRepo = "https://github.com/DawnMagnet/Zhiliao",
     )
 
     @Test
     fun reportCarriesTheFieldsWeNeedToDebug() {
         val text = sample()
+        assertTrue(text.contains("打包者    : Dominic Wen"))
+        assertTrue(text.contains("源代码    : https://github.com/DawnMagnet/Zhiliao"))
         assertTrue(text.contains("知乎版本  : 11.10.0/41012"))
         assertTrue(text.contains("缓存指纹  : 41012:5:1789999331707"))
         assertTrue(text.contains("失败项    : switch_homenav"))
@@ -45,6 +49,8 @@ class DiagnosticReportTest {
             failures = emptyList(),
             switches = emptyMap(),
             textLengths = emptyMap(),
+            packager = "Dominic Wen",
+            sourceRepo = "https://github.com/DawnMagnet/Zhiliao",
         )
         assertTrue(text.contains("未知（知乎没在运行？）"))
         assertTrue(text.contains("失败项    : 无"))

@@ -351,6 +351,8 @@ class MainActivity : ComponentActivity() {
             failures = unsupportedKeys.toList(),
             switches = hookValues,
             textLengths = textValues.mapValues { it.value.length },
+            packager = getString(R.string.packager_name),
+            sourceRepo = getString(R.string.source_repo),
         )
         try {
             val dir = File(getExternalFilesDir(null), "diagnostics").apply { mkdirs() }

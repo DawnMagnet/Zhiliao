@@ -5,6 +5,9 @@ plugins {
 
 val appVerName = providers.gradleProperty("appVerName").get()
 val appVerCode = providers.gradleProperty("appVerCode").get().toInt()
+val appPackager = providers.gradleProperty("appPackager").get()
+val appPackagerUrl = providers.gradleProperty("appPackagerUrl").get()
+val appSourceRepo = providers.gradleProperty("appSourceRepo").get()
 val releaseStoreFileProp = providers.gradleProperty("releaseStoreFile")
 val skipNativeBuild = providers.gradleProperty("skipNativeBuild").isPresent
 
@@ -24,6 +27,11 @@ android {
         versionCode = appVerCode
         versionName = appVerName
         resValue("string", "app_version", appVerName)
+        resValue("string", "packager_name", appPackager)
+        resValue("string", "packager_url", appPackagerUrl)
+        resValue("string", "source_repo", appSourceRepo)
+        resValue("string", "releases_url", "$appSourceRepo/releases/latest")
+        resValue("string", "feedback_url", "$appSourceRepo/issues")
         if (!skipNativeBuild) {
             externalNativeBuild {
                 cmake {

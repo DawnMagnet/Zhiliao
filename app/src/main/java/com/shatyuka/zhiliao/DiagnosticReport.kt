@@ -18,11 +18,15 @@ object DiagnosticReport {
         failures: List<String>,
         switches: Map<String, Boolean>,
         textLengths: Map<String, Int>,
+        packager: String,
+        sourceRepo: String,
     ): String {
         val text = StringBuilder()
         text.appendLine("知了诊断报告")
         text.appendLine("时间      : $timestamp")
         text.appendLine("模块版本  : $moduleVersion")
+        text.appendLine("打包者    : $packager")
+        text.appendLine("源代码    : $sourceRepo")
         text.appendLine("设备      : $device")
         text.appendLine("知乎版本  : ${zhihu.ifEmpty { "未知（知乎没在运行？）" }}")
         text.appendLine("缓存指纹  : ${fingerprint.ifEmpty { "无" }}")

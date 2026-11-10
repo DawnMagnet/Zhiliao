@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -407,23 +408,40 @@ private fun AboutBlock(
     onExport: () -> Unit,
     onRestart: () -> Unit,
 ) {
+    val packagerName = stringResource(R.string.packager_name)
+    val packagerUrl = stringResource(R.string.packager_url)
+    val sourceRepo = stringResource(R.string.source_repo)
+    val releasesUrl = stringResource(R.string.releases_url)
+    val feedbackUrl = stringResource(R.string.feedback_url)
     SectionHeader("关于")
     SettingCard {
         ValueRow("版本", version, R.drawable.ic_info, Accent.Blue, onClick = {})
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        ValueRow("打包者", packagerName, R.drawable.ic_person, Accent.Blue) {
+            onOpenLink(packagerUrl)
+        }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         ValueRow("作者", "Shatyuka", R.drawable.ic_person, Accent.Blue, onClick = onAuthorClick)
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         LinkRow("帮助", "常见问题", R.drawable.ic_help) { onOpenLink("https://github.com/shatyuka/Zhiliao/wiki") }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        LinkRow("TG频道", "订阅更新", R.drawable.ic_rss_feed) { onOpenLink("https://t.me/zhiliao") }
+        LinkRow("订阅更新", "GitHub Release", R.drawable.ic_rss_feed) {
+            onOpenLink(releasesUrl)
+        }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        LinkRow("TG群", "找作者对线", R.drawable.ic_telegram) {
+        LinkRow("反馈", "GitHub Issues", R.drawable.ic_help) {
+            onOpenLink(feedbackUrl)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        LinkRow("上游群", "原作者的 Telegram", R.drawable.ic_telegram) {
             onOpenLink("https://t.me/joinchat/OibCWxbdCMkJ2fG8J1DpQQ")
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        LinkRow("源代码", "点个 Star 吧", R.drawable.ic_github) { onOpenLink("https://github.com/shatyuka/Zhiliao") }
+        LinkRow("源代码", "DawnMagnet/Zhiliao", R.drawable.ic_github) {
+            onOpenLink(sourceRepo)
+        }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        LinkRow("捐赠", "快揭不开锅了", R.drawable.ic_monetization) {
+        LinkRow("捐赠", "支持原作者", R.drawable.ic_monetization) {
             onOpenLink("https://github.com/shatyuka/Zhiliao/wiki/Donate")
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
